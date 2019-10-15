@@ -1,16 +1,16 @@
-import time
-import random
-import newspaper
 import requests
 from bs4 import BeautifulSoup
+import downloadNovel
 
 
 class source:
 
+    # 定义网站base_url和搜索url
     def __init__(self):
         self.host_url = ""
         self.seach_url = ''
 
+    # 获取网站的内容
     def get_Html(self,url):
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
@@ -24,11 +24,11 @@ class source:
         soup = BeautifulSoup(html_doc, 'html.parser')
         return soup
 
-
+    # 获取搜索到的小说
     def getNovels(self,novels_soup):
         print()
 
-
+    # 显示搜索到的小说
     def showSearchNovel(self,novels):
         if novels != None:
             index = 1
@@ -38,6 +38,7 @@ class source:
                 index += 1
                 print(a)
 
+    # 选择搜索到的小说
     def selectNovel(self,str,len):
         index = input(str)
         try:
@@ -48,22 +49,10 @@ class source:
             index = self.selectNovel('请输入正确下载的序号:', len)
         return index
 
+    # 获取选择小说的目录，返回{title:herf}的列表
     def getCatalog(self,novel):
         print()
 
-    def getText(self,url):
-        try:
-            # time.sleep(random.randint(1, 10) / 10)
-            a = newspaper.Article(url, language='zh')
-            a.download()
-            a.parse()
-            text = '    ' + a.text
-        except Exception as e:
-            time.sleep(random.randint(1, 10) / 10)
-            print("下载失败:" + url)
-            print(e)
-            text = self.getText(url)
-        return text.replace('\n\n', '\n\n    ')
 
     def init(self,novelName):
         print(self.seach_url.format(novelName))
@@ -75,13 +64,15 @@ class source:
         for catalog in catalog_list:
             title = '    ' + list(catalog.keys())[0]
             print(title)
+        downloadNovel.start(catalog_list)
 
 
 
 
 
 
-# ———————————————————————————————————————————————————————————
+
+# ——————————————————————————笔趣阁5200————————————————————————————
 
 class biquge5200(source):
 
@@ -118,6 +109,6 @@ class biquge5200(source):
             if lenght < 18:
                 catalog_list = catalog_list[lenght // 2:lenght]
             else:
-                catalog_list = catalog_list[8:lenght]
+                catalog_list = catalog_list[9:lenght]
 
         return catalog_list
