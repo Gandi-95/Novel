@@ -115,6 +115,7 @@ def main(catalog_list,novelName):
         with open(novel_path.format(novelName), 'a',encoding='utf-8') as f:
             f.write(txt)
     print(novel_path.format(novelName) + " 下载完成。")
+    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
 
 
 
@@ -137,7 +138,7 @@ def thread(catalog_list,novelName):
         thread.start()
 
 
-# 大清隐龙
+# 大清隐龙  https://www.cnblogs.com/IT-Scavenger/p/9883489.html
 def start(catalog_list,novelName):
    # thread(catalog_list,novelName)
    main(catalog_list, novelName)
