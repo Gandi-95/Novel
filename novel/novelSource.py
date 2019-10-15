@@ -64,7 +64,7 @@ class source:
         for catalog in catalog_list:
             title = '    ' + list(catalog.keys())[0]
             print(title)
-        downloadNovel.start(catalog_list)
+        downloadNovel.start(catalog_list,novelName)
 
 
 
