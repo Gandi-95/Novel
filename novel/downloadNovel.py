@@ -37,6 +37,7 @@ class downThread(threading.Thread):
             with open(novel_path.format(self.novelName), 'a',encoding='utf-8') as f:
                 f.write(txt)
         print(novel_path.format(self.novelName) + " 下载完成。")
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         s.release()
 
     def createdirs(self):
@@ -52,13 +53,13 @@ class downThread(threading.Thread):
 
     def getText(self, url):
         try:
-            # time.sleep(random.randint(1, 10) / 10)
+            time.sleep(3)
             a = newspaper.Article(url, language='zh')
             a.download()
             a.parse()
             text = '    ' + a.text
         except Exception as e:
-            time.sleep(random.randint(1, 10) / 10)
+            time.sleep(random.randint(1, 10))
             print("下载失败:" + url)
             print(e)
             text = self.getText(url)
@@ -79,9 +80,9 @@ def createdirs():
         os.makedirs(path)
     return path
 
-def getText( url):
+def getText(url):
     try:
-        time.sleep(1)
+        time.sleep(1/5)
         a = newspaper.Article(url, language='zh')
         a.download()
         a.parse()
@@ -99,6 +100,7 @@ def main(catalog_list,novelName):
     novel_path = createdirs() + '/{}.txt'
     count = 0
     txt = '    ' + novelName + '\n\n'
+    # catalog_list = catalog_list[840:940]
     for catalog in catalog_list:
         count += 1
         title = '    ' + list(catalog.keys())[0]
@@ -108,11 +110,11 @@ def main(catalog_list,novelName):
         txt += '%s\n\n%s\n%s' % (title, text, '\n\n')
         if count == 30:
             count = 0
-            with open(novel_path.format(novelName), 'a',encoding='utf-8') as f:
+            with open(novel_path.format(novelName), 'a',encoding='gb18030') as f:
                 f.write(txt)
             txt = ''
     if (count != 0):
-        with open(novel_path.format(novelName), 'a',encoding='utf-8') as f:
+        with open(novel_path.format(novelName), 'a',encoding='gb18030') as f:
             f.write(txt)
     print(novel_path.format(novelName) + " 下载完成。")
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
@@ -138,7 +140,7 @@ def thread(catalog_list,novelName):
         thread.start()
 
 
-# 大清隐龙  https://www.cnblogs.com/IT-Scavenger/p/9883489.html
+# 大清隐龙  https://www.cnblogs.com/IT-Scavenger/p/9883489.html  2019-10-16 09:07:02
 def start(catalog_list,novelName):
    # thread(catalog_list,novelName)
    main(catalog_list, novelName)
