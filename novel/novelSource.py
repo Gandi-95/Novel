@@ -77,15 +77,19 @@ class biquge(source):
     def findAllNovels(self):
         return 'td', 'odd'
 
+    def getNovelsInfo(self,a):
+        title = a.get_text()
+        href = a.get('href')
+        print(title + href)
+        return {title: href}
+
     def getNovels(self, novels_soup):
         seach_result_list = []
         td = novels_soup.find_all(self.findAllNovels())
         for item in td:
             a = item.a
             if a != None:
-                title = a.get_text()
-                href = a.get('href')
-                seach_result_list.append({title: href})
+                seach_result_list.append(self.getNovelsInfo(a))
         return seach_result_list
 
 
@@ -96,7 +100,7 @@ class biquge(source):
         title = a.get_text()
         href = a.get('href')
         print(title + href)
-        return {title, href}
+        return {title:href}
 
     def getCatalog(self, novel):
         catalog_soup = self.getCatalogHtml(list(novel.values())[0])
@@ -140,11 +144,16 @@ class biqugex(biquge):
     def findAllNovels(self):
         return 'li'
 
+    def getNovelsInfo(self,a):
+        title = a.get_text()
+        href = a.get('href').replace('/goto/id/','_')+"/"
+        return {title:href}
+
     def getCatalogHtml(self,url):
         return self.get_Html(url,'gb18030')
 
     def getCatalogInfo(self, a):
         title = a.get_text()
         href = self.host_url+a.get('href')
-        print(title + href)
-        return {title, href}
+
+        return {title:href}
