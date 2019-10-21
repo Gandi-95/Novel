@@ -100,14 +100,13 @@ def main(catalog_list,novelName):
     novel_path = createdirs() + '/{}.txt'
     count = 0
     txt = '    ' + novelName + '\n\n'
-    # catalog_list = catalog_list[840:940]
     for catalog in catalog_list:
         count += 1
         title = '    ' + list(catalog.keys())[0]
         url = list(catalog.values())[0]
         text = getText(url)
         print('正在下载：' + title)
-        txt += '%s\n\n%s\n%s' % (title, text, '\n\n')
+        txt += '%s\n%s\n%s' % (title, text, '\n\n')
         if count == 30:
             count = 0
             with open(novel_path.format(novelName), 'a',encoding='gb18030') as f:
