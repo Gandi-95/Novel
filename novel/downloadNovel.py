@@ -83,7 +83,7 @@ def createdirs():
 def getText(url):
     try:
         time.sleep(1/5)
-        a = newspaper.Article(url, language='zh')
+        a = newspaper.Article(url, language='zh', memoize_articles=False)
         a.download()
         a.parse()
         text = '    ' + a.text
@@ -96,7 +96,7 @@ def getText(url):
 
 
 
-def main(catalog_list,novelName):
+def main(catalog_list,novelName,getContext = getText):
     novel_path = createdirs() + '/{}.txt'
     count = 0
     txt = '    ' + novelName + '\n\n'
@@ -104,7 +104,7 @@ def main(catalog_list,novelName):
         count += 1
         title = '    ' + list(catalog.keys())[0]
         url = list(catalog.values())[0]
-        text = getText(url)
+        text = getContext(url)
         print('正在下载：' + title)
         txt += '%s\n%s\n%s' % (title, text, '\n\n')
         if count == 30:
@@ -143,4 +143,8 @@ def thread(catalog_list,novelName):
 def start(catalog_list,novelName):
    # thread(catalog_list,novelName)
    main(catalog_list, novelName)
+
+def start(catalog_list, novelName,getContext):
+   # thread(catalog_list,novelName)
+   main(catalog_list, novelName,getContext)
 
