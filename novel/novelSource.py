@@ -1,9 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
 import downloadNovel
-
 import urllib.parse
-import sys
+requests.packages.urllib3.disable_warnings()
 
 
 class source:
@@ -38,7 +37,7 @@ class source:
 
     # 获取搜索到的小说
     def getNovels(self, novels_soup):
-        print()
+        pass
 
     # 显示搜索到的小说
     def showSearchNovel(self, novels):
@@ -63,7 +62,10 @@ class source:
 
     # 获取选择小说的目录，返回{title:herf}的列表
     def getCatalog(self, novel):
-        print()
+        pass
+
+    def download(self,catalog_list,novelName):
+        downloadNovel.start(catalog_list, novelName)
 
     def init(self, novelName):
         url = self.seachUrl(novelName)
@@ -74,7 +76,7 @@ class source:
             self.showSearchNovel(novels)
             index = self.selectNovel('请输入需要下载的序号:', len(novels))
             catalog_list = self.getCatalog(novels[index - 1])
-            downloadNovel.start(catalog_list, novelName)
+            self.download(catalog_list,novelName)
         else:
             print("未搜索到"+novelName)
 
@@ -197,22 +199,22 @@ class biqugex(biquge):
 class dingdiann(biquge):
 
     def __init__(self):
-        self.host_url = 'https://www.dingdiann.com/'
+        self.host_url = 'https://www.dingdiann.com'
         self.seach_url = 'https://www.dingdiann.com/searchbook.php?keyword={}'
 
     def getNovelsHtml(self,url):
         return self.get_Html(url,'utf-8')
 
-    # # 获取搜索的全部小说
-    # def getNovels(self, novels_soup):
-    #     seach_result_list = []
-    #     td = novels_soup.find_all('span','s2')
-    #     print(td)
-    #     for item in td:
-    #         a = item.a
-    #         if a != None:
-    #             seach_result_list.append(self.getNovelsInfo(a))
-    #     return seach_result_list
+    # 获取搜索的全部小说
+    def getNovels(self, novels_soup):
+        seach_result_list = []
+        td = novels_soup.find_all('span','s2')
+        print(td)
+        for item in td:
+            a = item.a
+            if a != None:
+                seach_result_list.append(self.getNovelsInfo(a))
+        return seach_result_list
 
     def findAllNovels(self):
         return 'span','s2'
@@ -221,3 +223,18 @@ class dingdiann(biquge):
         title = a.get_text()
         href = self.host_url+a.get('href')
         return {title:href}
+
+    def getCatalogHtml(self,url):
+        return self.get_Html(url,'utf-8')
+
+    def getCatalogInfo(self, a):
+        title = a.get_text()
+        href = self.host_url+a.get('href')
+        print(title + href)
+        return {title:href}
+
+    def getText(self,url):
+        return self.get_Html(url).find('div','context')
+
+    def download(self,catalog_list,novelName):
+        downloadNovel.main(catalog_list,novelName,self.getText)
