@@ -33,9 +33,18 @@ code_headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36'
 }
 
+cookie_headers = {
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+    'Accept-Encoding': 'gzip, deflate',
+    'Accept-Language': 'zh-CN,zh;q=0.9',
+    'Connection': 'keep-alive',
+    'Host': 'cca2.szime.com',
+    'Referer': 'http://edog.szime.com/',
+    'Upgrade-Insecure-Requests': '1',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.62 Safari/537.36'
+}
 
-
-cookie = 'JSESSIONID='
+JSESSIONID = 'JSESSIONID='
 
 connect = False
 
@@ -77,45 +86,45 @@ def message_received(client, server, message):
 
 
 # 启动连接imeClient,py ,并传递imei
-def imeClientStart(imei, itoken,sessionid):
-    bash = 'python %s\imeClient.py %s %s %s' % (os.path.abspath(os.path.dirname(__file__)),imei,itoken,sessionid)
+def imeClientStart(imei, itoken, sessionid):
+    bash = 'python %s\imeClient.py %s %s %s' % (os.path.abspath(os.path.dirname(__file__)), imei, itoken, sessionid)
     print(bash)
-    subprocess.call(bash, creationflags=subprocess.CREATE_NEW_CONSOLE)
+    # subprocess.call(bash, creationflags=subprocess.CREATE_NEW_CONSOLE)
 
 
 def main(argv):
     # python D:/PythonProjects/Novel/novel/ime/inputCmd.py -i 35291203059306
-    # imei = '35291203059306'
+    imei = '35291203059306'
 
-    username='gandii'
-    password="gand_999"
-    try:
-        opts, args = getopt.getopt(argv[1:], "hi:s:e:k:", ["imei=", "username=", "password="])
-    except getopt.GetoptError:
-        print('usage: python [option] ... [-i <imei> -u <username> -p <password>]')
-        sys.exit(2)
+    username = 'gandii'
+    password = "gand_999"
+    # try:
+    #     opts, args = getopt.getopt(argv[1:], "hi:s:e:k:", ["imei=", "username=", "password="])
+    # except getopt.GetoptError:
+    #     print('usage: python [option] ... [-i <imei> -u <username> -p <password>]')
+    #     sys.exit(2)
+    #
+    # if len(opts) < 1:
+    #     # imei = input("请输入Imei:")
+    #     pass
+    # else:
+    #     for opt, arg in opts:
+    #         if opt == '-h':
+    #             print('usage: python [option] ... [-i <imei> -u <username> -p <password>')
+    #             sys.exit()
+    #         elif opt in ("-i", "--imei"):
+    #             imei = arg
+    #         elif opt in ("-u", "--username"):
+    #             username = arg
+    #         elif opt in ("-p", "--password"):
+    #             password = arg
 
-    if len(opts) < 1:
-        # imei = input("请输入Imei:")
-        pass
-    else:
-        for opt, arg in opts:
-            if opt == '-h':
-                print('usage: python [option] ... [-i <imei> -u <username> -p <password>')
-                sys.exit()
-            elif opt in ("-i", "--imei"):
-                imei = arg
-            elif opt in ("-u", "--username"):
-                username = arg
-            elif opt in ("-p", "--password"):
-                password = arg
-
-    itoken,sessionid = login(username,password)
+    itoken, cookie = login(username, password)
 
     server = threading.Thread(target=serverStart)
     server.start()
 
-    cmd = threading.Thread(target=imeClientStart, args=(imei, itoken,sessionid))
+    cmd = threading.Thread(target=imeClientStart, args=(imei, itoken, cookie))
     cmd.start()
 
 
@@ -134,7 +143,7 @@ def token(client_secret, scope, sessionid, username, password, verify):
             'password': password,
             'verify': verify
             }
-    headers['Cookie'] = cookie + sessionid
+    headers['Cookie'] = JSESSIONID + sessionid
     response = requests.post(token_url, data=data, headers=headers)
     token_data = json.loads(response.text)
     if "access_token" in token_data:
@@ -143,7 +152,10 @@ def token(client_secret, scope, sessionid, username, password, verify):
     else:
         print("token:" + token_data['error_description'])
         return login(username, password)
-    return itoken
+
+    cookie = getcookie(itoken)
+
+    return itoken, cookie
 
 
 def show_capt(capt):
@@ -158,7 +170,7 @@ def login(username, password):
     sessionid = etree_html.xpath('/html/body/div/div/div[1]/div/div/form/input[5]/@value')[0]
     verify_src = etree_html.xpath('/html/body/div/div/div[1]/div/div/form/div[3]/img/@src')[0]
 
-    code_headers['Cookie'] = cookie + sessionid
+    code_headers['Cookie'] = JSESSIONID + sessionid
     verify_response = requests.get(url + verify_src, headers=code_headers)
     # 将二进制的验证码图片写入IO流
     f = BytesIO(verify_response.content)
@@ -169,11 +181,44 @@ def login(username, password):
     show_capt_thread.start()
 
     verify = input('请输入验证码：')
-    return token(client_secret, scope, sessionid, username, password, verify),sessionid
+    return token(client_secret, scope, sessionid, username, password, verify)
+
+
+fwver_headers = {
+    'Accept': 'application/json',
+    'Accept-Encoding': 'gzip, deflate',
+    'Accept-Language': 'zh-CN,zh;q=0.9',
+    'Connection': 'keep-alive',
+    'Cookie': 'JSESSIONID=1479v0m37bszk1bfpv4q3vu2i7',
+    'Host': 'cca2.szime.com',
+    'Referer': 'http://cca2.szime.com/home',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36',
+    'X-Requested-With': 'XMLHttpRequest',
+}
+
+
+def getcookie(itoken):
+    # cookie_url = 'http://cca2.szime.com/redir?lc=zh_CN&access_token=%s&auth=http://edog.szime.com/frame_loginime?locale=zh_CN' % (token)
+    cookie_url = 'http://cca2.szime.com/redir?lc=zh_CN&access_token='+itoken+'&auth=http://edog.szime.com/frame_loginime?locale=zh_CN'
+    print(cookie_url)
+    # requests自动重定向了, 且重定向后的返回没有cookie,allow_redirects=False 禁止自动重定向
+    r = requests.get(cookie_url, headers=cookie_headers, allow_redirects=False)
+    print(r.headers)
+
+
+    cookie = r.headers['Set-Cookie'].split(';')[1]
+    print(cookie)
+    getfwver('35291203059306', cookie)
+
+    return cookie
+
+
+def getfwver(imei, cookie):
+    url = 'http://cca2.szime.com/api/device?_dc=1589458268639&did=%s&group=&user=&page=1&start=0&limit=60' % (imei)
+    fwver_headers['Cookie'] = JSESSIONID + cookie
+    r = requests.get(url, headers=fwver_headers)
+    print(r.text)
 
 
 if __name__ == '__main__':
     main(sys.argv)
-
-
-
