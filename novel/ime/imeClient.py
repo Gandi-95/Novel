@@ -168,9 +168,9 @@ def on_close(ws):
 
 
 # 启动连接IME websocket
-def ime_client():
+def ime_client(apiService):
     # websocket.enableTrace(True)
-    ws = websocket.WebSocketApp("wss://cca1.szime.com/imclient?access_token=%s" % (token),
+    ws = websocket.WebSocketApp("wss://%s/imclient?access_token=%s" % (apiService, token),
                                 header=headers,
                                 on_message=on_message,
                                 on_error=on_error,
@@ -236,9 +236,7 @@ def get_fwver(imei):
     r = session.get(url, headers=json_headers)
     version_info = json.loads(r.text)
     version = version_info['items'][0]['stats']['fwver']
-    logger.info(version)
-
-    query_group(imei)
+    logger.info("version : "+version+"\n")
 
 
 def query_group(imei):
@@ -246,22 +244,28 @@ def query_group(imei):
     url = 'http://cca2.szime.com/api/user/query?q=%s&_dc=%d' % (imei, gettime())
     r = session.get(url, headers=json_headers)
     group_info = json.loads(r.text)
-    group_info[0].split("\\/")
+    logger.debug(group_info)
+    try:
+        groups = group_info[0].split("/")
+        length = len(groups)
+    except:
+        get_cookie(session)
+        return query_group(imei)
 
-
-    logger.info(group_info[0].split("/"))
+    logger.debug(groups)
+    return get_apiServer(groups[length - 2], groups[length - 1])
 
 
 def get_apiServer(group_name, group):
     url = 'http://cca2.szime.com/api/user/group/%s/users?_dc=%d&query=%s&page=1&limit=30' % (
-    group_name, gettime(), group)
+        group_name, gettime(), group)
     session = get_session()
     r = session.get(url, headers=json_headers)
-    logger.info(r.text)
+    apiServer_info = json.loads(r.text.lstrip("{total:1,items:").rstrip("}"))
+    apiServer = apiServer_info[0]["apiServer"]
+    logger.info('apiServer : ' + apiServer.split(":")[0] + '\n')
 
-    '''
-    {total:1,items:[{"uid":"edogtest","enabled":true,"wid":null,"locale":"en_US","attr":{"grade":1,"prefermap":"AMap"},"registerTime":1354675710654,"info":"","id":"595527800abaa3455ae2ec84","balance":0.000000,"apiServer":"cca1.szime.com:80","email":"edogtest@edog.net.cn","roles":[{"name":"AGENT_USER","permissions":[]},{"name":"DATA_ADMIN","permissions":[]},{"name":"CARD_ADMIN","permissions":[]},{"name":"TRACKER_USER","permissions":[]},{"name":"USER_ADMIN","permissions":[]},{"name":"GROUP_ADMIN","permissions":[]},{"name":"USER","permissions":["USER_READ"]}],"login":"edogtest","group":"edogtest"}]}
-    '''
+    return apiServer.split(":")[0]
 
 
 if __name__ == '__main__':
@@ -271,9 +275,10 @@ if __name__ == '__main__':
 
     logger.debug("imei:" + imei + " token:" + token)
 
+    apiService = query_group(imei)
     get_fwver(imei)
 
-    ime_client = threading.Thread(target=ime_client)
+    ime_client = threading.Thread(target=ime_client, args=(apiService,))
     ime_client.start()
 
     inputclient = threading.Thread(target=connectInput)
