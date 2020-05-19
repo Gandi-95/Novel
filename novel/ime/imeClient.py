@@ -6,6 +6,8 @@ import logging
 import time
 import sys
 import requests
+import http.cookiejar as HC
+import json
 from Logger import Logger
 
 headers = {
@@ -23,12 +25,22 @@ headers = {
     'Upgrade': 'websocket',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36'}
 
-fwver_headers = {
+cookie_headers = {
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+    'Accept-Encoding': 'gzip, deflate',
+    'Accept-Language': 'zh-CN,zh;q=0.9',
+    'Connection': 'keep-alive',
+    'Host': 'cca2.szime.com',
+    'Referer': 'http://edog.szime.com/',
+    'Upgrade-Insecure-Requests': '1',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36'
+}
+
+json_headers = {
     'Accept': 'application/json',
     'Accept-Encoding': 'gzip, deflate',
     'Accept-Language': 'zh-CN,zh;q=0.9',
     'Connection': 'keep-alive',
-    'Cookie': 'JSESSIONID=1479v0m37bszk1bfpv4q3vu2i7',
     'Host': 'cca2.szime.com',
     'Referer': 'http://cca2.szime.com/home',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36',
@@ -158,8 +170,7 @@ def on_close(ws):
 # 启动连接IME websocket
 def ime_client():
     # websocket.enableTrace(True)
-    getfwver()
-    ws = websocket.WebSocketApp("wss://cca4.szime.com/imclient?access_token=%s" % (token),
+    ws = websocket.WebSocketApp("wss://cca1.szime.com/imclient?access_token=%s" % (token),
                                 header=headers,
                                 on_message=on_message,
                                 on_error=on_error,
@@ -196,26 +207,77 @@ def connectInput():
     ws.run_forever()
 
 
-def getfwver(imei):
+def get_session():
+    session = requests.session()
+    session.cookies = HC.LWPCookieJar(filename='cookies')
+    #  如果存在cookies文件，则加载，如果不存在则提示
+    try:
+        session.cookies.load(ignore_discard=True)
+    except:
+        get_cookie(session)
+    return session
+
+
+# 获取cookie
+def get_cookie(session):
+    cookie_url = 'http://cca2.szime.com/redir?lc=zh_CN&access_token=%s&auth=http://edog.szime.com/frame_loginime?locale=zh_CN' % (
+        token)
+    # requests自动重定向了, 且重定向后的返回没有cookie,allow_redirects=False 禁止自动重定向
+    r = session.get(cookie_url, headers=cookie_headers, allow_redirects=False)
+    session.cookies.save(ignore_discard=True, ignore_expires=True)
+
+
+# 获取当前imei设备版本号
+def get_fwver(imei):
+    session = get_session()
+
+    # c3ngk5m38twx1sw3iswxxdmtr
     url = 'http://cca2.szime.com/api/device?_dc=1589458268639&did=%s&group=&user=&page=1&start=0&limit=60' % (imei)
-    fwver_headers['Cookie'] = cookie + sessionid
-    r = requests.get(url, headers=fwver_headers)
-    print(r.text)
+    r = session.get(url, headers=json_headers)
+    version_info = json.loads(r.text)
+    version = version_info['items'][0]['stats']['fwver']
+    logger.info(version)
+
+    query_group(imei)
+
+
+def query_group(imei):
+    session = get_session()
+    url = 'http://cca2.szime.com/api/user/query?q=%s&_dc=%d' % (imei, gettime())
+    r = session.get(url, headers=json_headers)
+    group_info = json.loads(r.text)
+    group_info[0].split("\\/")
+
+
+    logger.info(group_info[0].split("/"))
+
+
+def get_apiServer(group_name, group):
+    url = 'http://cca2.szime.com/api/user/group/%s/users?_dc=%d&query=%s&page=1&limit=30' % (
+    group_name, gettime(), group)
+    session = get_session()
+    r = session.get(url, headers=json_headers)
+    logger.info(r.text)
+
+    '''
+    {total:1,items:[{"uid":"edogtest","enabled":true,"wid":null,"locale":"en_US","attr":{"grade":1,"prefermap":"AMap"},"registerTime":1354675710654,"info":"","id":"595527800abaa3455ae2ec84","balance":0.000000,"apiServer":"cca1.szime.com:80","email":"edogtest@edog.net.cn","roles":[{"name":"AGENT_USER","permissions":[]},{"name":"DATA_ADMIN","permissions":[]},{"name":"CARD_ADMIN","permissions":[]},{"name":"TRACKER_USER","permissions":[]},{"name":"USER_ADMIN","permissions":[]},{"name":"GROUP_ADMIN","permissions":[]},{"name":"USER","permissions":["USER_READ"]}],"login":"edogtest","group":"edogtest"}]}
+    '''
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 3:
+    if len(sys.argv) > 2:
         imei = sys.argv[1]
         token = sys.argv[2]
-        sessionid = sys.argv[3]
 
-    logger.debug("imei:"+imei+" token:"+token)
+    logger.debug("imei:" + imei + " token:" + token)
+
+    get_fwver(imei)
+
     ime_client = threading.Thread(target=ime_client)
     ime_client.start()
 
     inputclient = threading.Thread(target=connectInput)
     inputclient.start()
 
-    getfwver('35629601635326')
     # subprocess.Popen('python searchlogs.py', shell=True)
     # subprocess.Popen('cmd.exe /C tcping -t 192.168.88.2', creationflags=subprocess.CREATE_NEW_CONSOLE)
