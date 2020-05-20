@@ -90,6 +90,63 @@ def imeClientStart(imei, itoken):
     subprocess.call(bash, creationflags=subprocess.CREATE_NEW_CONSOLE)
 
 
+
+url = 'http://edog.szime.com/'
+login_url = url + 'frame_loginime?locale=zh_CN'
+token_url = url + 'oauth/token'
+
+# 获取token
+def token(client_secret, scope, sessionid, username, password, verify):
+    data = {'grant_type': 'web',
+            'client_id': 'web',
+            'client_secret': client_secret,
+            'scope': scope,
+            'sessionid': sessionid,
+            'username': username,
+            'password': password,
+            'verify': verify
+            }
+    headers['Cookie'] = JSESSIONID + sessionid
+    response = requests.post(token_url, data=data, headers=headers)
+    token_data = json.loads(response.text)
+    if "access_token" in token_data:
+        itoken = token_data['access_token'];
+        print("已登录")
+    else:
+        print("token:" + token_data['error_description'])
+        return login(username, password)
+
+    return itoken
+
+# 显示验证码
+def show_capt(capt):
+    capt.show()
+
+# 登录
+def login(username, password):
+    response = requests.get(login_url, headers=headers)
+    etree_html = etree.HTML(response.text)
+    client_secret = etree_html.xpath('/html/body/div/div/div[1]/div/div/form/input[3]/@value')[0]
+    scope = etree_html.xpath('/html/body/div/div/div[1]/div/div/form/input[4]/@value')[0]
+    sessionid = etree_html.xpath('/html/body/div/div/div[1]/div/div/form/input[5]/@value')[0]
+    verify_src = etree_html.xpath('/html/body/div/div/div[1]/div/div/form/div[3]/img/@src')[0]
+
+    code_headers['Cookie'] = JSESSIONID + sessionid
+    verify_response = requests.get(url + verify_src, headers=code_headers)
+    # 将二进制的验证码图片写入IO流
+    f = BytesIO(verify_response.content)
+    # 将验证码转换为Image对象
+    capt = Image.open(f)
+
+    show_capt_thread = threading.Thread(target=show_capt, args=(capt,))
+    show_capt_thread.start()
+
+    verify = input('请输入验证码：')
+    return token(client_secret, scope, sessionid, username, password, verify)
+
+
+
+
 def main(argv, imei='35291203059306', username='gandii', password="gand_999"):
     try:
         opts, args = getopt.getopt(argv[1:], "hi:s:e:k:", ["imei=", "username=", "password="])
@@ -117,94 +174,6 @@ def main(argv, imei='35291203059306', username='gandii', password="gand_999"):
     cmd.start()
 
 
-url = 'http://edog.szime.com/'
-login_url = url + 'frame_loginime?locale=zh_CN'
-token_url = url + 'oauth/token'
-
-
-def token(client_secret, scope, sessionid, username, password, verify):
-    data = {'grant_type': 'web',
-            'client_id': 'web',
-            'client_secret': client_secret,
-            'scope': scope,
-            'sessionid': sessionid,
-            'username': username,
-            'password': password,
-            'verify': verify
-            }
-    headers['Cookie'] = JSESSIONID + sessionid
-    response = requests.post(token_url, data=data, headers=headers)
-    token_data = json.loads(response.text)
-    if "access_token" in token_data:
-        itoken = token_data['access_token'];
-        print("已登录")
-    else:
-        print("token:" + token_data['error_description'])
-        return login(username, password)
-
-    # cookie = getcookie(itoken)
-
-    return itoken
-
-
-def show_capt(capt):
-    capt.show()
-
-
-def login(username, password):
-    response = requests.get(login_url, headers=headers)
-    etree_html = etree.HTML(response.text)
-    client_secret = etree_html.xpath('/html/body/div/div/div[1]/div/div/form/input[3]/@value')[0]
-    scope = etree_html.xpath('/html/body/div/div/div[1]/div/div/form/input[4]/@value')[0]
-    sessionid = etree_html.xpath('/html/body/div/div/div[1]/div/div/form/input[5]/@value')[0]
-    verify_src = etree_html.xpath('/html/body/div/div/div[1]/div/div/form/div[3]/img/@src')[0]
-
-    code_headers['Cookie'] = JSESSIONID + sessionid
-    verify_response = requests.get(url + verify_src, headers=code_headers)
-    # 将二进制的验证码图片写入IO流
-    f = BytesIO(verify_response.content)
-    # 将验证码转换为Image对象
-    capt = Image.open(f)
-
-    show_capt_thread = threading.Thread(target=show_capt, args=(capt,))
-    show_capt_thread.start()
-
-    verify = input('请输入验证码：')
-    return token(client_secret, scope, sessionid, username, password, verify)
-
-#
-# fwver_headers = {
-#     'Accept': 'application/json',
-#     'Accept-Encoding': 'gzip, deflate',
-#     'Accept-Language': 'zh-CN,zh;q=0.9',
-#     'Connection': 'keep-alive',
-#     'Host': 'cca2.szime.com',
-#     'Referer': 'http://cca2.szime.com/home',
-#     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36',
-#     'X-Requested-With': 'XMLHttpRequest',
-# }
-#
-#
-# def getcookie(itoken):
-#     import http.cookiejar as HC
-#     session = requests.session()
-#     session.cookies = HC.LWPCookieJar(filename='cookies')
-#     #  如果存在cookies文件，则加载，如果不存在则提示
-#     try:
-#         session.cookies.load(ignore_discard=True)
-#     except:
-#         cookie_url = 'http://cca2.szime.com/redir?lc=zh_CN&access_token=%s&auth=http://edog.szime.com/frame_loginime?locale=zh_CN' % (
-#             token)
-#         # requests自动重定向了, 且重定向后的返回没有cookie,allow_redirects=False 禁止自动重定向
-#         r = session.get(cookie_url, headers=cookie_headers, allow_redirects=False)
-#         session.cookies.save(ignore_discard=True, ignore_expires=True)
-#     getfwver('35291203059306', session)
-#
-#
-# def getfwver(imei, session):
-#     url = 'http://cca2.szime.com/api/device?_dc=1589458268639&did=%s&group=&user=&page=1&start=0&limit=60' % (imei)
-#     r = session.get(url, headers=fwver_headers)
-#     print(r.text)
 
 
 if __name__ == '__main__':

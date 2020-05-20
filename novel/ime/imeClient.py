@@ -5,6 +5,7 @@ import queue
 import logging
 import time
 import sys
+import os
 import requests
 import http.cookiejar as HC
 import json
@@ -209,7 +210,7 @@ def connectInput():
 
 def get_session():
     session = requests.session()
-    session.cookies = HC.LWPCookieJar(filename='cookies')
+    session.cookies = HC.LWPCookieJar(filename=os.path.abspath(os.path.dirname(__file__))+'/cookies')
     #  如果存在cookies文件，则加载，如果不存在则提示
     try:
         session.cookies.load(ignore_discard=True)
@@ -238,7 +239,7 @@ def get_fwver(imei):
     version = version_info['items'][0]['stats']['fwver']
     logger.info("version : "+version+"\n")
 
-
+# 获取imei所在分组
 def query_group(imei):
     session = get_session()
     url = 'http://cca2.szime.com/api/user/query?q=%s&_dc=%d' % (imei, gettime())
@@ -255,7 +256,7 @@ def query_group(imei):
     logger.debug(groups)
     return get_apiServer(groups[length - 2], groups[length - 1])
 
-
+# 获取imei所在服务器
 def get_apiServer(group_name, group):
     url = 'http://cca2.szime.com/api/user/group/%s/users?_dc=%d&query=%s&page=1&limit=30' % (
         group_name, gettime(), group)
@@ -275,14 +276,16 @@ if __name__ == '__main__':
 
     logger.debug("imei:" + imei + " token:" + token)
 
-    apiService = query_group(imei)
-    get_fwver(imei)
+    try :
+        apiService = query_group(imei)
+        get_fwver(imei)
 
-    ime_client = threading.Thread(target=ime_client, args=(apiService,))
-    ime_client.start()
+        ime_client = threading.Thread(target=ime_client, args=(apiService,))
+        ime_client.start()
 
-    inputclient = threading.Thread(target=connectInput)
-    inputclient.start()
-
+        inputclient = threading.Thread(target=connectInput)
+        inputclient.start()
+    except Exception as e:
+        logger.error(e)
     # subprocess.Popen('python searchlogs.py', shell=True)
     # subprocess.Popen('cmd.exe /C tcping -t 192.168.88.2', creationflags=subprocess.CREATE_NEW_CONSOLE)
